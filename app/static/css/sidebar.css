@@ -1,0 +1,279 @@
+/* ============================================================
+   FinSentinel — Sidebar Navigation
+   ============================================================ */
+
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: var(--sidebar-width);
+    height: 100vh;
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border-default);
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+    transition: width var(--transition-slow);
+    overflow: hidden;
+}
+
+.sidebar.collapsed {
+    width: var(--sidebar-collapsed-width);
+}
+
+/* Logo Section */
+.sidebar__logo {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-lg) var(--space-lg);
+    height: var(--topbar-height);
+    border-bottom: 1px solid var(--border-subtle);
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.sidebar__logo-icon {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sidebar__logo-icon svg {
+    width: 28px;
+    height: 28px;
+}
+
+.sidebar__logo-text {
+    display: flex;
+    flex-direction: column;
+    white-space: nowrap;
+    overflow: hidden;
+    transition: opacity var(--transition-base);
+}
+
+.sidebar.collapsed .sidebar__logo-text {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.sidebar__brand {
+    font-size: var(--text-lg);
+    font-weight: 900;
+    background: linear-gradient(135deg, #60a5fa, #818cf8, #34d399);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+}
+
+.sidebar__tagline {
+    font-size: 0.55rem;
+    color: var(--text-dim);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+/* Navigation */
+.sidebar__nav {
+    flex: 1;
+    padding: var(--space-lg) var(--space-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow-y: auto;
+}
+
+.sidebar__section-label {
+    font-size: 0.55rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+    padding: var(--space-lg) var(--space-sm) var(--space-sm) var(--space-md);
+    white-space: nowrap;
+    overflow: hidden;
+    transition: opacity var(--transition-base);
+}
+
+.sidebar.collapsed .sidebar__section-label {
+    opacity: 0;
+    height: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+.sidebar__link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: 8px 12px;
+    border-radius: var(--radius-md);
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    text-decoration: none;
+    transition: all var(--transition-fast);
+    position: relative;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.sidebar__link:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+    text-decoration: none;
+}
+
+.sidebar__link.active {
+    background: var(--color-blue-soft);
+    color: var(--color-blue);
+}
+
+.sidebar__link.active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 4px;
+    bottom: 4px;
+    width: 3px;
+    border-radius: 0 2px 2px 0;
+    background: var(--color-blue);
+}
+
+.sidebar__link-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sidebar__link-icon svg {
+    width: 18px;
+    height: 18px;
+    stroke-width: 1.8;
+}
+
+.sidebar__link-label {
+    transition: opacity var(--transition-base);
+}
+
+.sidebar.collapsed .sidebar__link-label {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Tooltip on collapsed state */
+.sidebar.collapsed .sidebar__link {
+    justify-content: center;
+    padding: 10px;
+}
+
+.sidebar.collapsed .sidebar__link:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: calc(var(--sidebar-collapsed-width) + 8px);
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--bg-card-solid);
+    color: var(--text-primary);
+    padding: 4px 10px;
+    border-radius: var(--radius-sm);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    white-space: nowrap;
+    z-index: 200;
+    border: 1px solid var(--border-strong);
+    box-shadow: var(--shadow-md);
+    pointer-events: none;
+}
+
+/* Sidebar Footer */
+.sidebar__footer {
+    padding: var(--space-md) var(--space-sm);
+    border-top: 1px solid var(--border-subtle);
+    flex-shrink: 0;
+}
+
+.sidebar__toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    width: 100%;
+    padding: 8px;
+    border-radius: var(--radius-md);
+    color: var(--text-dim);
+    font-size: var(--text-xs);
+    transition: all var(--transition-fast);
+}
+
+.sidebar__toggle:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-muted);
+}
+
+.sidebar__toggle svg {
+    width: 18px;
+    height: 18px;
+    transition: transform var(--transition-base);
+}
+
+.sidebar.collapsed .sidebar__toggle svg {
+    transform: rotate(180deg);
+}
+
+.sidebar__toggle-label {
+    transition: opacity var(--transition-base);
+}
+
+.sidebar.collapsed .sidebar__toggle-label {
+    opacity: 0;
+    width: 0;
+    overflow: hidden;
+}
+
+/* Badge count in nav */
+.sidebar__badge {
+    margin-left: auto;
+    background: var(--color-red);
+    color: #fff;
+    font-size: 0.55rem;
+    font-weight: 800;
+    min-width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-full);
+    padding: 0 5px;
+    transition: opacity var(--transition-base);
+}
+
+.sidebar.collapsed .sidebar__badge {
+    position: absolute;
+    top: 2px;
+    right: 6px;
+    min-width: 14px;
+    height: 14px;
+    font-size: 0.5rem;
+    padding: 0 3px;
+    margin-left: 0;
+}
+
+/* --- MAIN CONTENT OFFSET --- */
+.main-content {
+    margin-left: var(--sidebar-width);
+    transition: margin-left var(--transition-slow);
+    min-height: 100vh;
+}
+
+.sidebar.collapsed ~ .main-content {
+    margin-left: var(--sidebar-collapsed-width);
+}

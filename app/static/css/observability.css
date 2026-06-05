@@ -1,0 +1,173 @@
+/* ============================================================
+   FinSentinel — Observability Styles
+   ============================================================ */
+
+.obs-page {
+    padding: var(--space-xl);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xl);
+}
+
+/* --- STATS ROW --- */
+.obs-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: var(--space-lg);
+}
+
+.stat-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-box::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 2px;
+    background: var(--border-default);
+}
+
+.stat-box--warning::before {
+    background: var(--color-amber);
+}
+
+.stat-box__title {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.stat-box__value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.stat-box__subtitle {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    margin-top: auto;
+}
+
+/* --- CARDS & CHARTS --- */
+.obs-charts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+    gap: var(--space-lg);
+}
+
+.obs-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    display: flex;
+    flex-direction: column;
+}
+
+.obs-card__header {
+    padding: var(--space-lg) var(--space-lg) var(--space-sm) var(--space-lg);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.obs-card__title {
+    font-size: var(--text-md);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.obs-card__actions {
+    display: flex;
+    gap: var(--space-md);
+}
+
+.chart-legend-item {
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.dot {
+    width: 8px; height: 8px; border-radius: 50%;
+}
+.dot--blue { background: var(--color-blue); }
+.dot--emerald { background: var(--color-emerald); }
+
+.obs-chart-container {
+    padding: var(--space-md);
+    height: 300px;
+    width: 100%;
+}
+
+/* --- TERMINAL / LOGS --- */
+.obs-logs-section {
+    display: flex;
+    flex-direction: column;
+}
+
+.obs-terminal {
+    background: #000;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    padding: var(--space-md);
+    height: 400px;
+    overflow-y: auto;
+    border-bottom-left-radius: var(--radius-lg);
+    border-bottom-right-radius: var(--radius-lg);
+}
+
+.log-line {
+    margin-bottom: 4px;
+    line-height: 1.4;
+    word-break: break-word;
+}
+
+.log-time {
+    color: var(--text-dim);
+    margin-right: var(--space-sm);
+}
+
+.log-line--info { color: var(--text-secondary); }
+.log-line--success { color: var(--color-emerald); }
+.log-line--warn { color: var(--color-amber); }
+.log-line--error { color: var(--color-red); }
+.log-line--action { color: var(--color-blue); }
+
+.btn-clear {
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    color: var(--text-secondary);
+    padding: 4px 12px;
+    border-radius: var(--radius-sm);
+    font-size: var(--text-xs);
+    cursor: pointer;
+    transition: 0.2s;
+}
+.btn-clear:hover {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+}
+
+.obs-status-badge {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    margin-left: var(--space-md);
+    border: 1px solid currentColor;
+}
+.badge--emerald { color: var(--color-emerald); background: var(--color-emerald-soft); }
+.badge--red { color: var(--color-red); background: var(--color-red-soft); }

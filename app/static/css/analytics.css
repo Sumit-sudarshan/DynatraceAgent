@@ -1,0 +1,342 @@
+/* ============================================================
+   FinSentinel — Analytics Page Styles (Fixed)
+   ============================================================ */
+
+/* --- PAGE LAYOUT --- */
+.analytics-page {
+    padding: var(--space-xl);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* --- TIME FILTERS (in topbar left) --- */
+.time-filters {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    margin-left: var(--space-lg);
+}
+
+.time-filter-btn {
+    padding: 5px 12px;
+    font-size: var(--text-xs);
+    font-weight: 700;
+    color: var(--text-muted);
+    background: rgba(17, 24, 39, 0.7);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-full);
+    transition: all var(--transition-fast);
+    cursor: pointer;
+    letter-spacing: 0.03em;
+}
+
+.time-filter-btn:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.time-filter-btn.active {
+    background: var(--color-blue);
+    color: #fff;
+    border-color: var(--color-blue);
+    box-shadow: var(--shadow-glow-blue);
+}
+
+/* --- STATS BAR --- */
+.analytics-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-lg);
+    flex-shrink: 0;
+}
+
+.stat-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    position: relative;
+    overflow: hidden;
+    transition: transform var(--transition-base), box-shadow var(--transition-base);
+}
+
+.stat-box:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.stat-box::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    border-radius: 4px 0 0 4px;
+}
+
+.stat-box--blue::before   { background: var(--color-blue); }
+.stat-box--emerald::before { background: var(--color-emerald); }
+.stat-box--amber::before  { background: var(--color-amber); }
+.stat-box--red::before    { background: var(--color-red); }
+
+.stat-box__title {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: var(--space-sm);
+    padding-left: 8px;
+}
+
+.stat-box__value {
+    font-family: var(--font-mono);
+    font-size: var(--text-2xl);
+    font-weight: 900;
+    color: var(--text-primary);
+    margin-bottom: var(--space-xs);
+    padding-left: 8px;
+}
+
+.stat-box__change {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: var(--text-xs);
+    font-weight: 600;
+    padding-left: 8px;
+}
+
+.stat-box__change svg {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+}
+
+.stat-box__change--up   { color: var(--color-emerald); }
+.stat-box__change--down { color: var(--color-red); }
+
+/* --- CHARTS GRID --- */
+.charts-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-lg);
+}
+
+.chart-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.chart-card__header {
+    padding: var(--space-md) var(--space-lg);
+    border-bottom: 1px solid var(--border-strong);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+}
+
+.chart-card__title {
+    font-size: var(--text-sm);
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.chart-card__title svg {
+    width: 15px;
+    height: 15px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+/* CRITICAL: This is the container that holds the canvas.
+   Chart.js `responsive: true` reads the parent's bounding box.
+   It must have an explicit height and `position: relative`. */
+.chart-card__body {
+    padding: var(--space-lg);
+    flex: 1;
+    position: relative;
+    height: 280px;   /* explicit height so Chart.js can size itself */
+    min-height: 280px;
+}
+
+.chart-card__body canvas {
+    position: absolute;
+    top: var(--space-lg);
+    left: var(--space-lg);
+    right: var(--space-lg);
+    bottom: var(--space-lg);
+    width: calc(100% - 2 * var(--space-lg)) !important;
+    height: calc(100% - 2 * var(--space-lg)) !important;
+}
+
+/* Override for the rules panel which doesn't have a canvas */
+.chart-card__body--list {
+    position: relative;
+    height: 280px;
+    min-height: 280px;
+    padding: var(--space-md);
+    overflow-y: auto;
+}
+
+.chart-card__body--list canvas {
+    position: static;
+    width: auto !important;
+    height: auto !important;
+}
+
+/* --- TOP RULES LIST --- */
+.rules-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.rule-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-sm) var(--space-md);
+    background: rgba(3, 7, 18, 0.45);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-subtle);
+    transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.rule-item:hover {
+    background: rgba(59, 130, 246, 0.05);
+    border-color: var(--border-strong);
+}
+
+.rule-item__info {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.rule-item__icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-amber-soft);
+    color: var(--color-amber);
+    flex-shrink: 0;
+}
+
+.rule-item__icon svg {
+    width: 14px;
+    height: 14px;
+}
+
+.rule-item__text {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.rule-item__name {
+    font-size: var(--text-sm);
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.rule-item__desc {
+    font-size: 0.6rem;
+    color: var(--text-dim);
+}
+
+.rule-item__stats {
+    display: flex;
+    align-items: center;
+    gap: var(--space-lg);
+}
+
+.rule-item__stat {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.rule-item__val {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    font-weight: 700;
+}
+
+.rule-item__lbl {
+    font-size: 0.55rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+/* Horizontal bar under rule name showing relative frequency */
+.rule-item__bar {
+    width: 80px;
+    height: 3px;
+    background: var(--border-strong);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+    margin-top: 3px;
+}
+
+.rule-item__bar-fill {
+    height: 100%;
+    background: var(--color-amber);
+    border-radius: var(--radius-full);
+}
+
+/* --- SECTION HEADING ROW --- */
+.section-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+}
+
+.section-heading__title {
+    font-size: var(--text-md);
+    font-weight: 700;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.section-heading__title svg {
+    width: 16px;
+    height: 16px;
+    color: var(--text-dim);
+}
+
+/* --- RESPONSIVE --- */
+@media (max-width: 1200px) {
+    .charts-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .analytics-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .time-filters {
+        margin-left: var(--space-sm);
+    }
+}
