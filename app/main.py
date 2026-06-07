@@ -47,6 +47,19 @@ review_decisions: dict = {}
 # Fraud threshold config (live-editable)
 fraud_thresholds = {"flag": 60, "block": 80}
 
+def reset_session_state():
+    """Reset all in-memory state so every new browser session starts fresh."""
+    global self_healing_action_count
+    stats["total"] = 0
+    stats["approved"] = 0
+    stats["flagged"] = 0
+    stats["blocked"] = 0
+    stats["recent_transactions"].clear()
+    latency_history.clear()
+    self_healing_action_count = 0
+    budget_controller.current_spend = 0.0
+    logger.info("Session reset: all stats and costs cleared for new session.")
+
 class ConnectionManager:
     def __init__(self):
         self.active_connections: List[WebSocket] = []
@@ -189,10 +202,15 @@ async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
     try:
         while True:
-            # Keep connection alive, listen for any messages from client
-            _ = await websocket.receive_text()
-    except WebSocketDisconnect:
+            # Send a ping every 10s to detect dead/closed connections quickly
+            await asyncio.sleep(10)
+            await websocket.send_text('{"type":"ping"}')
+    except (WebSocketDisconnect, Exception):
+        # Catch ALL exceptions — abrupt browser close, network drop, etc.
         manager.disconnect(websocket)
+        # If no users left → reset everything so next session starts fresh
+        if len(manager.active_connections) == 0:
+            reset_session_state()
         
 @app.get("/health")
 def health_check():
