@@ -92,6 +92,11 @@ async def transaction_streamer():
     
     while True:
         try:
+            # ── COST GUARD: skip Gemini calls when nobody is watching ──
+            if len(manager.active_connections) == 0:
+                await asyncio.sleep(5.0)
+                continue
+
             # Self-healing check before processing (queries Dynatrace MCP + API)
             await self_monitor.check_health_and_heal()
             
