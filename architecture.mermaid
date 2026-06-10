@@ -1,0 +1,48 @@
+graph TD
+    %% Define Styles
+    classDef external fill:#f9f,stroke:#333,stroke-width:2px;
+    classDef agents fill:#e1f5fe,stroke:#0288d1,stroke-width:2px;
+    classDef infra fill:#fff3e0,stroke:#f57c00,stroke-width:2px;
+    classDef dyna fill:#e8f5e9,stroke:#388e3c,stroke-width:2px;
+
+    %% Components
+    TxStream[Transaction Stream] --> Router
+
+    subgraph "Cost Engine & Orchestration"
+        Router{Cost Router}:::infra
+        Budget[Budget Controller]:::infra
+        Router <--> Budget
+    end
+
+    subgraph "Multi-Agent Pipeline"
+        Intake[Intake Agent<br>Triage / Heuristics]:::agents
+        Investigator[Investigator Agent<br>Deep Dive / Tools]:::agents
+        Decision[Decision Agent<br>Final Verdict]:::agents
+        
+        Router -->|Assigns Tier| Intake
+        Intake -->|If Suspicious| Investigator
+        Intake -->|If Clear| Decision
+        Investigator --> Decision
+    end
+
+    subgraph "Google Cloud (LLMs)"
+        GeminiFlash((Gemini 2.0 Flash<br>Economy/Fast)):::external
+        GeminiPro((Gemini 2.0 Pro<br>Premium/Smart)):::external
+        
+        Intake -.-> GeminiFlash
+        Investigator -.-> GeminiPro
+        Decision -.-> GeminiFlash
+        Decision -.-> GeminiPro
+    end
+
+    subgraph "Observability & Self-Healing"
+        Tracer[OpenTelemetry Tracer]:::infra
+        SelfMonitor[Self Monitor]:::infra
+        
+        Intake & Investigator & Decision -.->|Spans & Costs| Tracer
+        Tracer == OTLP ==> Dynatrace[(Dynatrace)]:::dyna
+        
+        SelfMonitor == JSON-RPC ==> MCPServer[Dynatrace MCP Server]:::dyna
+        MCPServer == DQL Queries ==> Dynatrace
+        SelfMonitor -.->|Updates False Positive Rate| Router
+    end
