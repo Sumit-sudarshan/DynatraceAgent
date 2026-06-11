@@ -68,7 +68,8 @@
 /* --- PANELS --- */
 .spanel {
     display: none;
-    animation: fadeIn 0.3s ease;
+    animation: fadeIn 0.15s ease;
+    content-visibility: auto;
 }
 
 .spanel.active {

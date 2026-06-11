@@ -41,105 +41,112 @@ if (sidebarToggle) {
     });
 }
 
-// === CHART.JS SETUP ===
-const costCtx = document.getElementById('cost-chart').getContext('2d');
-const fraudCtx = document.getElementById('fraud-chart').getContext('2d');
+// === CHART.JS SETUP (deferred until DOM ready) ===
+let costChart, fraudChart;
 
-const costChart = new Chart(costCtx, {
-    type: 'line',
-    data: {
-        labels: [],
-        datasets: [{
-            label: 'Cumulative Cost ($)',
-            data: [],
-            borderColor: '#22d3ee',
-            backgroundColor: (ctx) => {
-                const gradient = ctx.chart.ctx.createLinearGradient(0, 0, 0, ctx.chart.height);
-                gradient.addColorStop(0, 'rgba(34, 211, 238, 0.2)');
-                gradient.addColorStop(1, 'rgba(34, 211, 238, 0.01)');
-                return gradient;
-            },
-            borderWidth: 2,
-            fill: true,
-            tension: 0.4,
-            pointRadius: 0,
-            pointHoverRadius: 4,
-            pointHoverBackgroundColor: '#22d3ee'
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: { display: false },
-            tooltip: {
-                backgroundColor: 'rgba(17, 24, 39, 0.95)',
-                borderColor: 'rgba(55, 65, 81, 0.8)',
-                borderWidth: 1,
-                titleFont: { family: "'Inter'", size: 11 },
-                bodyFont: { family: "'JetBrains Mono'", size: 11 },
-                padding: 8,
-                cornerRadius: 6
-            }
+function initCharts() {
+    const costCtx = document.getElementById('cost-chart')?.getContext('2d');
+    const fraudCtx = document.getElementById('fraud-chart')?.getContext('2d');
+    if (!costCtx || !fraudCtx) return;
+
+    costChart = new Chart(costCtx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Cumulative Cost ($)',
+                data: [],
+                borderColor: '#22d3ee',
+                backgroundColor: (ctx) => {
+                    const gradient = ctx.chart.ctx.createLinearGradient(0, 0, 0, ctx.chart.height);
+                    gradient.addColorStop(0, 'rgba(34, 211, 238, 0.2)');
+                    gradient.addColorStop(1, 'rgba(34, 211, 238, 0.01)');
+                    return gradient;
+                },
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+                pointHoverBackgroundColor: '#22d3ee'
+            }]
         },
-        scales: {
-            x: {
-                display: true,
-                grid: { color: 'rgba(255,255,255,0.03)', drawBorder: false },
-                ticks: { color: '#4b5563', font: { size: 9, family: "'JetBrains Mono'" }, maxTicksLimit: 6 }
-            },
-            y: {
-                display: true,
-                grid: { color: 'rgba(255,255,255,0.03)', drawBorder: false },
-                ticks: { color: '#4b5563', font: { size: 9, family: "'JetBrains Mono'" }, callback: v => '$' + v.toFixed(3) }
-            }
-        }
-    }
-});
-
-const fraudChart = new Chart(fraudCtx, {
-    type: 'doughnut',
-    data: {
-        labels: ['Approved', 'Flagged', 'Blocked'],
-        datasets: [{
-            data: [0, 0, 0],
-            backgroundColor: [
-                'rgba(52, 211, 153, 0.75)',
-                'rgba(245, 158, 11, 0.75)',
-                'rgba(239, 68, 68, 0.75)'
-            ],
-            borderColor: ['#34d399', '#f59e0b', '#ef4444'],
-            borderWidth: 1.5,
-            hoverOffset: 8
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        cutout: '68%',
-        plugins: {
-            legend: {
-                position: 'bottom',
-                labels: {
-                    color: '#9ca3af',
-                    font: { size: 10, family: "'Inter'", weight: 500 },
-                    padding: 14,
-                    usePointStyle: true,
-                    pointStyleWidth: 8
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 0 },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                    borderColor: 'rgba(55, 65, 81, 0.8)',
+                    borderWidth: 1,
+                    titleFont: { family: "'Inter'", size: 11 },
+                    bodyFont: { family: "'JetBrains Mono'", size: 11 },
+                    padding: 8,
+                    cornerRadius: 6
                 }
             },
-            tooltip: {
-                backgroundColor: 'rgba(17, 24, 39, 0.95)',
-                borderColor: 'rgba(55, 65, 81, 0.8)',
-                borderWidth: 1,
-                titleFont: { family: "'Inter'", size: 11 },
-                bodyFont: { family: "'JetBrains Mono'", size: 11 },
-                padding: 8,
-                cornerRadius: 6
+            scales: {
+                x: {
+                    display: true,
+                    grid: { color: 'rgba(255,255,255,0.03)', drawBorder: false },
+                    ticks: { color: '#4b5563', font: { size: 9, family: "'JetBrains Mono'" }, maxTicksLimit: 6 }
+                },
+                y: {
+                    display: true,
+                    grid: { color: 'rgba(255,255,255,0.03)', drawBorder: false },
+                    ticks: { color: '#4b5563', font: { size: 9, family: "'JetBrains Mono'" }, callback: v => '$' + v.toFixed(3) }
+                }
             }
         }
-    }
-});
+    });
+
+    fraudChart = new Chart(fraudCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Approved', 'Flagged', 'Blocked'],
+            datasets: [{
+                data: [0, 0, 0],
+                backgroundColor: [
+                    'rgba(52, 211, 153, 0.75)',
+                    'rgba(245, 158, 11, 0.75)',
+                    'rgba(239, 68, 68, 0.75)'
+                ],
+                borderColor: ['#34d399', '#f59e0b', '#ef4444'],
+                borderWidth: 1.5,
+                hoverOffset: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 0 },
+            cutout: '68%',
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: '#9ca3af',
+                        font: { size: 10, family: "'Inter'", weight: 500 },
+                        padding: 14,
+                        usePointStyle: true,
+                        pointStyleWidth: 8
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                    borderColor: 'rgba(55, 65, 81, 0.8)',
+                    borderWidth: 1,
+                    titleFont: { family: "'Inter'", size: 11 },
+                    bodyFont: { family: "'JetBrains Mono'", size: 11 },
+                    padding: 8,
+                    cornerRadius: 6
+                }
+            }
+        }
+    });
+}
 
 // === WEBSOCKET ===
 function connect() {
@@ -611,4 +618,9 @@ async function fetchInitialData() {
 }
 
 // === INIT ===
-fetchInitialData().then(() => connect());
+document.addEventListener('DOMContentLoaded', () => {
+    initCharts();
+    // Start WS and data fetch in parallel — don't block one on the other
+    connect();
+    fetchInitialData();
+});

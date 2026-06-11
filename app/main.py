@@ -374,8 +374,27 @@ async def test_dynatrace():
     except Exception as e:
         return {"connected": False, "message": str(e)}
 
-# Serve the Vanilla JS Dashboard
+# Serve the Vanilla JS Dashboard with caching headers
+from fastapi import Request
+from fastapi.responses import FileResponse, Response
+import mimetypes
+
 static_dir = os.path.join(os.path.dirname(__file__), "static")
+
+@app.middleware("http")
+async def add_cache_headers(request: Request, call_next):
+    response = await call_next(request)
+    path = request.url.path
+    # Cache static assets aggressively (1 hour), never cache HTML
+    if path.startswith("/static/"):
+        if path.endswith((".css", ".js")):
+            response.headers["Cache-Control"] = "public, max-age=3600, stale-while-revalidate=86400"
+        elif path.endswith((".woff2", ".woff", ".ttf", ".ico", ".svg", ".png", ".webp")):
+            response.headers["Cache-Control"] = "public, max-age=86400"
+        elif path.endswith(".html"):
+            response.headers["Cache-Control"] = "no-cache"
+    return response
+
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 @app.get("/")
