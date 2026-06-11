@@ -111,9 +111,7 @@
                 </div>
             </div>
             <div class="topbar__right">
-                <div class="topbar__status">
-                    <span id="dt-status-badge" style="font-size:0.75rem; font-family:'JetBrains Mono',monospace; color:#6b7280">● Connecting to Dynatrace...</span>
-                </div>
+
             </div>
         </header>
 
@@ -188,18 +186,11 @@
             <section class="obs-logs-section">
                 <div class="obs-card">
                     <div class="obs-card__header">
-                        <h3 class="obs-card__title">Dynatrace MCP & System Event Log</h3>
+                        <h3 class="obs-card__title">System Event Log</h3>
                         <button class="btn-clear" onclick="clearLogs()">Clear Logs</button>
                     </div>
                     <div class="obs-terminal custom-scrollbar" id="log-terminal">
                         <!-- Logs generated via JS -->
-                        <div class="log-line log-line--info"><span class="log-time">[22:45:10]</span> [INFO] FinSentinel Observability Engine started.</div>
-                        <div class="log-line log-line--info"><span class="log-time">[22:45:11]</span> [MCP] Authenticated with Dynatrace environment (dt0c01.***).</div>
-                        <div class="log-line log-line--info"><span class="log-time">[22:45:12]</span> [SYSTEM] Multi-agent pipeline initialized: PatternDetector(flash), GeoValidator(flash), RiskScorer(pro).</div>
-                        <div class="log-line log-line--warn"><span class="log-time">[22:48:33]</span> [MCP] Dynatrace Problem ID P-230911 opened: High latency detected in payment gateway.</div>
-                        <div class="log-line log-line--error"><span class="log-time">[22:48:34]</span> [AGENT] Self-monitor triggered. Investigating root cause via MCP tool 'query_metrics'.</div>
-                        <div class="log-line log-line--info"><span class="log-time">[22:48:36]</span> [ACTION] Executed remediation script: restarting proxy pods in EU-West.</div>
-                        <div class="log-line log-line--success"><span class="log-time">[22:50:12]</span> [MCP] Dynatrace Problem ID P-230911 closed. Metrics normalized.</div>
                     </div>
                 </div>
             </section>
