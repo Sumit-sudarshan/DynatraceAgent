@@ -101,7 +101,7 @@ function connectWS() {
     ws.onopen = () => {
         connectionIndicator.classList.remove('indicator-dot--disconnected');
         connectionIndicator.classList.add('indicator-dot--connected');
-        document.getElementById('connection-label').textContent = 'MCP Online';
+        document.getElementById('connection-label').textContent = 'LIVE STREAM';
     };
 
     ws.onmessage = (event) => {
@@ -137,7 +137,7 @@ function connectWS() {
     ws.onclose = () => {
         connectionIndicator.classList.remove('indicator-dot--connected');
         connectionIndicator.classList.add('indicator-dot--disconnected');
-        document.getElementById('connection-label').textContent = 'MCP Offline';
+        document.getElementById('connection-label').textContent = 'LIVE STREAM';
         setTimeout(connectWS, 3000);
     };
 

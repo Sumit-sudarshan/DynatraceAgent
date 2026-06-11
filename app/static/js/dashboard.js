@@ -152,7 +152,7 @@ function connect() {
     ws.onopen = () => {
         connectionIndicator.classList.remove('indicator-dot--disconnected');
         connectionIndicator.classList.add('indicator-dot--connected');
-        document.getElementById('connection-label').textContent = 'MCP Online';
+        document.getElementById('connection-label').textContent = 'LIVE STREAM';
         console.log('WebSocket connected');
     };
 
@@ -185,7 +185,7 @@ function connect() {
     ws.onclose = () => {
         connectionIndicator.classList.remove('indicator-dot--connected');
         connectionIndicator.classList.add('indicator-dot--disconnected');
-        document.getElementById('connection-label').textContent = 'MCP Offline';
+        document.getElementById('connection-label').textContent = 'LIVE STREAM';
         console.log('Disconnected. Retrying in 3s...');
         setTimeout(connect, 3000);
     };
