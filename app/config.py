@@ -22,8 +22,8 @@ MCP_SERVER_URL = os.getenv("MCP_SERVER_URL", "")    # (unused — MCP runs as su
 BUDGET_USD_PER_HOUR = float(os.getenv("BUDGET_USD_PER_HOUR", "50.0"))
 
 # --- Model Names ---
-MODEL_FLASH = os.getenv("MODEL_FLASH", "gemini-2.0-flash")
-MODEL_PRO = os.getenv("MODEL_PRO", "gemini-2.0-flash")
+MODEL_FLASH = os.getenv("MODEL_FLASH", "gemini-1.5-flash-002")
+MODEL_PRO = os.getenv("MODEL_PRO", "gemini-1.5-pro-002")
 
 # --- Thresholds ---
 BUDGET_ECONOMY_THRESHOLD = 80.0    # % utilization to trigger economy mode
