@@ -306,6 +306,13 @@ function quickAction(index, status) {
         text: `Analyst: ${actionMap[status]}`,
         time: 'Just now'
     });
+    // Persist to backend
+    const baseUrl = window.location.protocol === 'file:' ? 'http://localhost:8000' : window.location.origin;
+    fetch(`${baseUrl}/api/review`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tx_id: item.txId, status })
+    }).catch(err => console.error('Review persist failed:', err));
     updateStats();
     updateSidebarBadge();
     renderQueue();
@@ -343,6 +350,14 @@ function addNote() {
         time: 'Just now'
     });
 
+    // Persist note to backend
+    const baseUrl = window.location.protocol === 'file:' ? 'http://localhost:8000' : window.location.origin;
+    fetch(`${baseUrl}/api/review`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tx_id: selectedItem.txId, status: selectedItem.status, note: text })
+    }).catch(err => console.error('Note persist failed:', err));
+
     textarea.value = '';
     const index = queueItems.findIndex(q => q.txId === selectedItem.txId);
     renderInvestigation(selectedItem, index);
@@ -354,7 +369,7 @@ function renderInvestigation(item, index) {
 
     const riskClass = getRiskClass(item.riskScore);
     const tierLabel = item.routingTier || 'standard';
-    const model = tierLabel === 'premium' ? 'Gemini 2.0 Pro' : 'Gemini 2.0 Flash';
+    const model = item.result?.model_used || 'gemini-2.5-flash';
     const isPending = item.status === 'pending';
     const shapFeatures = generateSHAPFeatures(item);
 

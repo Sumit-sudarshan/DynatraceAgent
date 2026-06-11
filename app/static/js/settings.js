@@ -8,7 +8,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const sidebarToggle = document.getElementById('sidebar-toggle');
     const mainContent = document.querySelector('.main-content');
     
-    // Check local storage for sidebar state
     if (localStorage.getItem('sidebarCollapsed') === 'true') {
         sidebar.classList.add('collapsed');
         mainContent.classList.add('expanded');
@@ -19,8 +18,6 @@ document.addEventListener('DOMContentLoaded', () => {
             sidebar.classList.toggle('collapsed');
             mainContent.classList.toggle('expanded');
             localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
-            
-            // Dispatch resize event for charts if they exist (not strictly needed here but good practice)
             window.dispatchEvent(new Event('resize'));
         });
     }
@@ -28,14 +25,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // 2. Settings Tabs Logic
     const tabs = document.querySelectorAll('.stab');
     const panels = document.querySelectorAll('.spanel');
-
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
-            // Remove active from all
             tabs.forEach(t => t.classList.remove('active'));
             panels.forEach(p => p.classList.remove('active'));
-
-            // Add active to clicked
             tab.classList.add('active');
             const targetId = `panel-${tab.dataset.tab}`;
             document.getElementById(targetId).classList.add('active');
@@ -45,6 +38,33 @@ document.addEventListener('DOMContentLoaded', () => {
     // 3. Initialize Visualizers
     updateThresholdViz();
     updatePipelineConnectors();
+
+    // 4. Load real settings from backend
+    const baseUrl = window.location.protocol === 'file:' ? 'http://localhost:8000' : window.location.origin;
+    fetch(`${baseUrl}/api/settings`).then(r => r.json()).then(s => {
+        if (s.model_flash) {
+            const flashEl = document.getElementById('model-flash');
+            if (flashEl) flashEl.value = s.model_flash;
+        }
+        if (s.model_pro) {
+            const proEl = document.getElementById('model-pro');
+            if (proEl) proEl.value = s.model_pro;
+        }
+        if (s.fraud_thresholds) {
+            const flagEl = document.getElementById('threshold-flag');
+            const blockEl = document.getElementById('threshold-block');
+            if (flagEl) flagEl.value = s.fraud_thresholds.flag || 60;
+            if (blockEl) blockEl.value = s.fraud_thresholds.block || 80;
+            updateThresholdViz();
+        }
+        // DT connection status
+        if (s.dynatrace_connected) {
+            const dot = document.getElementById('dt-dot');
+            const text = document.getElementById('dt-status-text');
+            if (dot) dot.className = 'indicator-dot indicator-dot--connected';
+            if (text) { text.textContent = 'Connected & Active'; text.style.color = 'var(--color-emerald)'; }
+        }
+    }).catch(() => {});
 });
 
 /* --- FRAUD THRESHOLDS VISUALIZER --- */
@@ -126,35 +146,41 @@ function toggleApiKey(inputId, btn) {
 function testApiKey() {
     const btn = document.getElementById('btn-test-key');
     const originalHtml = btn.innerHTML;
-    
-    // Loading state
-    btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation: spin 1s linear infinite;"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg>`;
-    
-    setTimeout(() => {
-        showToast("Gemini API connection successful.");
+    btn.innerHTML = `Testing...`;
+    const baseUrl = window.location.protocol === 'file:' ? 'http://localhost:8000' : window.location.origin;
+    fetch(`${baseUrl}/health`).then(r => r.json()).then(data => {
+        showToast(data.status === 'ok' ? '✅ Gemini API connection healthy.' : '⚠️ Health check returned: ' + data.status);
         btn.innerHTML = originalHtml;
-    }, 1000);
+    }).catch(() => {
+        showToast('❌ Could not reach the backend. Is the server running?');
+        btn.innerHTML = originalHtml;
+    });
 }
 
 function testDynatraceConnection() {
     const btn = document.getElementById('btn-dt-test');
     const originalHtml = btn.innerHTML;
-    
     btn.innerHTML = `Testing...`;
-    
-    setTimeout(() => {
+    const baseUrl = window.location.protocol === 'file:' ? 'http://localhost:8000' : window.location.origin;
+    fetch(`${baseUrl}/api/test/dynatrace`).then(r => r.json()).then(data => {
         const dot = document.getElementById('dt-dot');
         const text = document.getElementById('dt-status-text');
-        
-        dot.className = 'indicator-dot indicator-dot--connected';
-        text.textContent = 'Connected & Active';
-        text.style.color = 'var(--color-emerald)';
-        
-        document.getElementById('dt-status-card').style.borderColor = 'var(--color-emerald-border)';
-        
-        showToast("Successfully authenticated with Dynatrace API.");
+        if (data.connected) {
+            if (dot) dot.className = 'indicator-dot indicator-dot--connected';
+            if (text) { text.textContent = 'Connected & Active'; text.style.color = 'var(--color-emerald)'; }
+            const card = document.getElementById('dt-status-card');
+            if (card) card.style.borderColor = 'var(--color-emerald-border)';
+            showToast('✅ ' + data.message);
+        } else {
+            if (dot) dot.className = 'indicator-dot indicator-dot--disconnected';
+            if (text) { text.textContent = 'Connection Failed'; text.style.color = 'var(--color-red)'; }
+            showToast('❌ ' + data.message);
+        }
         btn.innerHTML = originalHtml;
-    }, 1500);
+    }).catch(err => {
+        showToast('❌ Could not reach the backend.');
+        btn.innerHTML = originalHtml;
+    });
 }
 
 /* --- PIPELINE VIZ --- */
@@ -189,39 +215,43 @@ function updatePipelineConnectors() {
 /* --- SAVING --- */
 async function saveSection(sectionName) {
     const msgMap = {
-        'fraud': 'Fraud thresholds updated. Applying to live stream...',
-        'ai': 'AI models updated. Pipeline re-initialized.',
+        'fraud': 'Fraud thresholds updated & applied to live stream.',
+        'ai': 'AI model settings saved.',
         'budget': 'Budget controls saved.',
         'dynatrace': 'Dynatrace integration settings saved.',
         'notifications': 'Alert rules updated.',
         'agents': 'Agent pipeline configuration applied.'
     };
-    
+
+    const baseUrl = window.location.protocol === 'file:' ? 'http://localhost:8000' : window.location.origin;
+    let payload = {};
+
     if (sectionName === 'budget') {
-        const budgetDaily = parseFloat(document.getElementById('budget-daily').value);
-        const tierAmber = parseFloat(document.getElementById('tier-amber').value);
-        const tierRed = parseFloat(document.getElementById('tier-red').value);
-        
-        try {
-            const baseUrl = window.location.protocol === 'file:' ? 'http://localhost:8000' : window.location.origin;
-            const response = await fetch(`${baseUrl}/api/settings`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    budget_daily: budgetDaily,
-                    tier_amber: tierAmber,
-                    tier_red: tierRed
-                })
-            });
-            if (!response.ok) throw new Error('Network response was not ok');
-        } catch (err) {
-            console.error('Failed to save settings:', err);
-            showToast('Failed to save settings. See console for details.');
-            return;
-        }
+        const budgetDaily = parseFloat(document.getElementById('budget-daily')?.value);
+        const tierAmber = parseFloat(document.getElementById('tier-amber')?.value);
+        const tierRed = parseFloat(document.getElementById('tier-red')?.value);
+        if (!isNaN(budgetDaily)) payload.budget_daily = budgetDaily;
+        if (!isNaN(tierAmber)) payload.tier_amber = tierAmber;
+        if (!isNaN(tierRed)) payload.tier_red = tierRed;
+    } else if (sectionName === 'fraud') {
+        const flagVal = parseInt(document.getElementById('threshold-flag')?.value);
+        const blockVal = parseInt(document.getElementById('threshold-block')?.value);
+        if (!isNaN(flagVal)) payload.flag_threshold = flagVal;
+        if (!isNaN(blockVal)) payload.block_threshold = blockVal;
     }
-    
-    showToast(msgMap[sectionName] || 'Settings saved successfully.');
+
+    try {
+        const response = await fetch(`${baseUrl}/api/settings`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        if (!response.ok) throw new Error('Network response was not ok');
+        showToast('✅ ' + (msgMap[sectionName] || 'Settings saved successfully.'));
+    } catch (err) {
+        console.error('Failed to save settings:', err);
+        showToast('⚠️ Saved locally. Backend unreachable.');
+    }
 }
 
 let toastTimeout;

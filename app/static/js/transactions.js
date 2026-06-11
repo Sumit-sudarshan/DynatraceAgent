@@ -359,7 +359,7 @@ function renderForensicDetail(tx) {
     const decision = tx.decision.toUpperCase();
     const decisionClass = decision === 'APPROVE' ? 'approve' : decision === 'FLAG' ? 'flag' : 'block';
     const tierLabel = tx.routingTier || 'standard';
-    const model = tierLabel === 'economy' ? 'gemini-1.5-flash-002' : tierLabel === 'premium' ? 'gemini-1.5-pro-002' : 'gemini-1.5-flash-002';
+    const model = tx.modelUsed || 'gemini-2.5-flash';
     const time = new Date(tx.timestamp * 1000);
 
     // Generate device info (simulated since backend doesn't provide hardware-level info)

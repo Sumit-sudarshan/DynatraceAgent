@@ -10,6 +10,8 @@
 let transactions = [];
 let trendChart, categoryChart, modelChart;
 let chartsInitialized = false;
+let analyticsData = null; // real data from /api/analytics
+let currentTimeWindow = 24; // hours
 
 // === DOM ===
 const connectionIndicator = document.getElementById('connection-indicator');
@@ -33,58 +35,44 @@ document.querySelectorAll('.time-filter-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
         document.querySelectorAll('.time-filter-btn').forEach(b => b.classList.remove('active'));
         e.target.classList.add('active');
-        // Re-shuffle trend chart data for visual feedback
-        shuffleTrendData();
+        const hours = parseInt(e.target.dataset.hours || 24);
+        currentTimeWindow = hours;
+        updateTrendChart();
     });
 });
 
 // === FETCH DATA ===
 async function fetchAnalytics() {
+    const baseUrl = window.location.protocol === 'file:'
+        ? 'http://localhost:8000'
+        : window.location.origin;
+
     try {
-        const baseUrl = window.location.protocol === 'file:'
-            ? 'http://localhost:8000'
-            : window.location.origin;
-
-        const res = await fetch(`${baseUrl}/api/transactions`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-
-        transactions = data.map(item => ({
-            amount:        item.transaction?.amount         || 0,
-            decision:      item.result?.decision            || 'APPROVE',
-            fraudCategory: item.result?.fraud_category     || 'none',
-            tier:          item.result?.routing_tier        || 'standard',
-            timestamp:     item.transaction?.timestamp     || Date.now() / 1000
-        }));
-
+        const [txRes, analyticsRes] = await Promise.all([
+            fetch(`${baseUrl}/api/transactions`),
+            fetch(`${baseUrl}/api/analytics`)
+        ]);
+        if (txRes.ok) {
+            const data = await txRes.json();
+            transactions = data.map(item => ({
+                amount:        item.transaction?.amount         || 0,
+                decision:      item.result?.decision            || 'APPROVE',
+                fraudCategory: item.result?.fraud_category     || 'none',
+                tier:          item.result?.routing_tier        || 'standard',
+                timestamp:     item.transaction?.timestamp     || Date.now() / 1000
+            }));
+        }
+        if (analyticsRes.ok) {
+            analyticsData = await analyticsRes.json();
+        }
     } catch (err) {
-        console.warn('Could not fetch historical data, using fallback:', err);
-        // Seed with realistic-looking fallback data
-        transactions = generateFallbackData();
+        console.warn('Analytics fetch failed, using available data:', err);
     }
 
     calculateStats();
-    initCharts();   // always called after data is ready
+    initCharts();
 }
 
-// === FALLBACK DATA ===
-function generateFallbackData() {
-    const categories = ['velocity_testing', 'geo_impossible', 'high_amount', 'card_not_present_geo', 'none'];
-    const tiers = ['standard', 'premium', 'economy'];
-    const decisions = ['APPROVE', 'APPROVE', 'APPROVE', 'APPROVE', 'FLAG', 'BLOCK'];
-    const data = [];
-    for (let i = 0; i < 120; i++) {
-        const d = decisions[Math.floor(Math.random() * decisions.length)];
-        data.push({
-            amount:        parseFloat((Math.random() * 2000 + 5).toFixed(2)),
-            decision:      d,
-            fraudCategory: d !== 'APPROVE' ? categories[Math.floor(Math.random() * 4)] : 'none',
-            tier:          tiers[Math.floor(Math.random() * tiers.length)],
-            timestamp:     Date.now() / 1000 - Math.random() * 86400
-        });
-    }
-    return data;
-}
 
 // === CALCULATE AGGREGATES ===
 function calculateStats() {
@@ -135,11 +123,12 @@ function initCharts() {
         return `${h}:00`;
     });
 
-    // Build approval / block counts per hour from real data
+    // Build approval / block counts per hour from real data filtered by time window
     const approveByHour = new Array(24).fill(0);
     const blockByHour   = new Array(24).fill(0);
+    const cutoffTs = (Date.now() / 1000) - (currentTimeWindow * 3600);
 
-    transactions.forEach(tx => {
+    transactions.filter(tx => tx.timestamp >= cutoffTs).forEach(tx => {
         const txHour = new Date(tx.timestamp * 1000).getHours();
         const slotIdx = hourLabels.findIndex(l => parseInt(l) === txHour);
         if (slotIdx === -1) return;
@@ -147,9 +136,8 @@ function initCharts() {
         else blockByHour[slotIdx]++;
     });
 
-    // Pad zeros with plausible values so the chart isn't empty
-    const dataApprove = approveByHour.map(v => v > 0 ? v : Math.floor(Math.random() * 30) + 15);
-    const dataBlock   = blockByHour.map(v   => v > 0 ? v : Math.floor(Math.random() * 6) + 1);
+    const dataApprove = approveByHour;
+    const dataBlock   = blockByHour;
 
     trendChart = new Chart(trendEl.getContext('2d'), {
         type: 'bar',
@@ -218,10 +206,7 @@ function initCharts() {
     });
 
     if (Object.keys(catCounts).length === 0) {
-        catCounts['Velocity Testing']    = 42;
-        catCounts['Geo Impossible']      = 28;
-        catCounts['High Amount Anomaly'] = 18;
-        catCounts['Card Not Present']    = 12;
+        catCounts['No Fraud Detected'] = 1;
     }
 
     const catColors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#22d3ee'];
@@ -264,20 +249,11 @@ function initCharts() {
         }
     });
 
-    // ---- 3. Scatter: Cost vs Latency ----
-    // Economy tier = fast + cheap; Premium tier = slower + more expensive
-    const economyPts = Array.from({ length: 30 }, () => ({
-        x: Math.random() * 150 + 80,   // 80-230ms
-        y: Math.random() * 0.002 + 0.0005
-    }));
-    const standardPts = Array.from({ length: 40 }, () => ({
-        x: Math.random() * 200 + 200,  // 200-400ms
-        y: Math.random() * 0.004 + 0.002
-    }));
-    const premiumPts = Array.from({ length: 20 }, () => ({
-        x: Math.random() * 250 + 350,  // 350-600ms
-        y: Math.random() * 0.005 + 0.005
-    }));
+    // ---- 3. Scatter: Cost vs Latency — REAL data from /api/analytics ----
+    const scatterByTier = analyticsData?.scatter_by_tier || {};
+    const economyPts  = scatterByTier.economy  || [];
+    const standardPts = scatterByTier.standard || [];
+    const premiumPts  = scatterByTier.premium  || [];
 
     modelChart = new Chart(modelEl.getContext('2d'), {
         type: 'scatter',
@@ -345,11 +321,20 @@ function initCharts() {
     });
 }
 
-// === SHUFFLE TREND DATA (time filter press) ===
-function shuffleTrendData() {
+// === UPDATE TREND CHART WITH CURRENT TIME WINDOW ===
+function updateTrendChart() {
     if (!trendChart) return;
-    trendChart.data.datasets[0].data = Array.from({ length: 24 }, () => Math.floor(Math.random() * 40) + 10);
-    trendChart.data.datasets[1].data = Array.from({ length: 24 }, () => Math.floor(Math.random() * 8) + 1);
+    const approveByHour = new Array(24).fill(0);
+    const blockByHour   = new Array(24).fill(0);
+    const cutoffTs = (Date.now() / 1000) - (currentTimeWindow * 3600);
+    transactions.filter(tx => tx.timestamp >= cutoffTs).forEach(tx => {
+        const txHour = new Date(tx.timestamp * 1000).getHours();
+        const slotIdx = txHour % 24;
+        if (tx.decision.toUpperCase() === 'APPROVE') approveByHour[slotIdx]++;
+        else blockByHour[slotIdx]++;
+    });
+    trendChart.data.datasets[0].data = approveByHour;
+    trendChart.data.datasets[1].data = blockByHour;
     trendChart.update('active');
 }
 

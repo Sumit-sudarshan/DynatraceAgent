@@ -64,7 +64,8 @@ async def run_decision(transaction: Dict[str, Any], investigation_result: Dict[s
                 {"feature": "mock_risk_heuristic", "impact": 0.6, "direction": "fraud" if risk_score > 60 else "legit"}
             ],
             "recommended_actions": actions,
-            "routing_tier": routing_tier
+            "routing_tier": routing_tier,
+            "model_used": MODEL_FLASH  # mock mode always uses flash
         }
     else:
         # Real Gemini call for final decision
@@ -112,4 +113,5 @@ async def run_decision(transaction: Dict[str, Any], investigation_result: Dict[s
         
         result["transaction_id"] = transaction["transaction_id"]
         result["routing_tier"] = routing_tier
+        result["model_used"] = model  # real model name used (e.g. gemini-2.5-flash)
         return result

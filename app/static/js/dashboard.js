@@ -352,7 +352,8 @@ function renderDetails(msg) {
     const isHighRisk = riskScore > 70;
     const riskClass = getRiskClass(riskScore);
     const tierLabel = msg.result.routing_tier || 'standard';
-    const model = tierLabel === 'economy' ? 'gemini-1.5-flash-002' : tierLabel === 'premium' ? 'gemini-1.5-pro-002' : 'gemini-1.5-flash-002';
+    // Use real model name returned by the backend agent, not a hardcoded string
+    const model = msg.result.model_used || (tierLabel === 'economy' ? 'gemini-2.5-flash' : 'gemini-2.5-flash');
     const confidence = msg.result.confidence || 0;
     const decision = msg.result.decision.toUpperCase();
 

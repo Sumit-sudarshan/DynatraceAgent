@@ -8,7 +8,8 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z'/><path d='m9 12 2 2 4-4'/></svg>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"></noscript>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/sidebar.css">
@@ -111,8 +112,7 @@
             </div>
             <div class="topbar__right">
                 <div class="topbar__status">
-                    <div id="connection-indicator" class="indicator-dot indicator-dot--connected"></div>
-                    <span id="connection-label">Live Stream</span>
+                    <span id="dt-status-badge" style="font-size:0.75rem; font-family:'JetBrains Mono',monospace; color:#6b7280">● Connecting to Dynatrace...</span>
                 </div>
             </div>
         </header>
@@ -124,23 +124,23 @@
             <section class="obs-metrics">
                 <div class="stat-box">
                     <div class="stat-box__title">Agent Pipeline Latency</div>
-                    <div class="stat-box__value mono" id="obs-latency">1,240ms</div>
-                    <div class="stat-box__subtitle">Avg response time across 3 Gemini agents</div>
+                    <div class="stat-box__value mono" id="kpi-latency">—</div>
+                    <div class="stat-box__subtitle" id="kpi-latency-sub">Avg response time across 3 Gemini agents</div>
                 </div>
                 <div class="stat-box">
-                    <div class="stat-box__title">Budget Burn Rate</div>
-                    <div class="stat-box__value mono" id="obs-burn">$0.42 / min</div>
-                    <div class="stat-box__subtitle">Projected daily spend: $12.50</div>
+                    <div class="stat-box__title">Total API Spend</div>
+                    <div class="stat-box__value mono" id="kpi-burn-rate">—</div>
+                    <div class="stat-box__subtitle" id="kpi-burn-sub">Real token costs from Vertex AI</div>
                 </div>
                 <div class="stat-box stat-box--warning">
                     <div class="stat-box__title">Self-Healing Actions</div>
-                    <div class="stat-box__value mono">4</div>
-                    <div class="stat-box__subtitle">Auto-remediations in last 24h</div>
+                    <div class="stat-box__value mono" id="kpi-healing-actions">—</div>
+                    <div class="stat-box__subtitle" id="kpi-healing-sub">FP rate escalations triggered</div>
                 </div>
                 <div class="stat-box">
                     <div class="stat-box__title">Dynatrace Uptime</div>
-                    <div class="stat-box__value mono text-emerald">99.99%</div>
-                    <div class="stat-box__subtitle">No active incidents</div>
+                    <div class="stat-box__value mono text-emerald" id="kpi-uptime">—</div>
+                    <div class="stat-box__subtitle">Based on open problem count</div>
                 </div>
             </section>
 
@@ -149,10 +149,10 @@
                 <!-- Latency Chart -->
                 <div class="obs-card">
                     <div class="obs-card__header">
-                        <h3 class="obs-card__title">Agent Response Times (P95 vs P50)</h3>
+                        <h3 class="obs-card__title">Real Pipeline Latency (per transaction)</h3>
                         <div class="obs-card__actions">
                             <span class="chart-legend-item"><span class="dot dot--blue"></span> P95</span>
-                            <span class="chart-legend-item"><span class="dot dot--emerald"></span> P50</span>
+                            <span class="chart-legend-item"><span class="dot dot--emerald"></span> Actual</span>
                         </div>
                     </div>
                     <div class="obs-chart-container">
@@ -163,10 +163,23 @@
                 <!-- API Costs -->
                 <div class="obs-card">
                     <div class="obs-card__header">
-                        <h3 class="obs-card__title">Cumulative API Cost (USD)</h3>
+                        <h3 class="obs-card__title">Cumulative Vertex AI Spend (USD)</h3>
                     </div>
                     <div class="obs-chart-container">
                         <canvas id="chart-cost"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- DYNATRACE PROBLEMS PANEL -->
+            <section class="obs-logs-section">
+                <div class="obs-card">
+                    <div class="obs-card__header">
+                        <h3 class="obs-card__title">Dynatrace Live Problems</h3>
+                        <span style="font-size:0.72rem;color:#6b7280">Queried from Dynatrace /api/v2/problems every 30s</span>
+                    </div>
+                    <div id="dt-problems-list" style="padding:12px 0; min-height:48px">
+                        <span style="color:#6b7280;font-size:0.8rem">Loading...</span>
                     </div>
                 </div>
             </section>

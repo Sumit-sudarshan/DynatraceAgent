@@ -1,213 +1,270 @@
 /* ============================================================
-   FinSentinel — Observability Page Logic
+   FinSentinel — Observability Page (LIVE DATA)
+   Fetches from /api/observability every 30s — real in-memory
+   metrics + live Dynatrace Problems API.
    ============================================================ */
 
+const BASE_URL = window.location.origin;
+let latencyChart, costChart;
+let lastData = null;
+
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Sidebar Toggle Logic
+    // Sidebar collapse
     const sidebar = document.getElementById('sidebar');
     const sidebarToggle = document.getElementById('sidebar-toggle');
     const mainContent = document.querySelector('.main-content');
-    
+
     if (localStorage.getItem('sidebarCollapsed') === 'true') {
-        sidebar.classList.add('collapsed');
-        mainContent.classList.add('expanded');
+        sidebar?.classList.add('collapsed');
+        mainContent?.classList.add('expanded');
     }
+    sidebarToggle?.addEventListener('click', () => {
+        sidebar.classList.toggle('collapsed');
+        mainContent.classList.toggle('expanded');
+        localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+        window.dispatchEvent(new Event('resize'));
+    });
 
-    if (sidebarToggle) {
-        sidebarToggle.addEventListener('click', () => {
-            sidebar.classList.toggle('collapsed');
-            mainContent.classList.toggle('expanded');
-            localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
-            window.dispatchEvent(new Event('resize'));
-        });
-    }
+    // Initial load
+    loadObservabilityData();
 
-    // 2. Initialize Charts
-    initLatencyChart();
-    initCostChart();
-
-    // 3. Start Mock Log Stream
-    startLogStream();
+    // Refresh every 30 seconds
+    setInterval(loadObservabilityData, 30000);
 });
 
-/* --- CHARTS --- */
-let latencyChart, costChart;
+/* --- MAIN DATA FETCHER --- */
+async function loadObservabilityData() {
+    try {
+        const resp = await fetch(`${BASE_URL}/api/observability`);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+        lastData = data;
+        renderPage(data);
+    } catch (err) {
+        console.error('Failed to load observability data:', err);
+        appendLog('error', `[SYSTEM] Failed to fetch observability data: ${err.message}`);
+    }
+}
 
-function initLatencyChart() {
+/* --- RENDER ALL METRICS --- */
+function renderPage(data) {
+    // KPI Cards
+    setEl('kpi-latency', `${data.pipeline_latency_avg_ms.toLocaleString()}ms`);
+    setEl('kpi-burn-rate', `$${data.budget_spend_usd.toFixed(4)}`);
+    setEl('kpi-healing-actions', data.self_healing_actions);
+    setEl('kpi-uptime', `${data.dynatrace_uptime_pct.toFixed(2)}%`);
+    setEl('kpi-latency-sub', `P95: ${data.pipeline_latency_p95_ms}ms across 3 Gemini agents`);
+    setEl('kpi-burn-sub', `Budget utilization: ${data.budget_utilization_pct}% (tier: ${data.routing_tier})`);
+    setEl('kpi-healing-sub', `False positive rate: ${data.false_positive_rate}%`);
+
+    // Dynatrace connection badge
+    const badge = document.getElementById('dt-status-badge');
+    if (badge) {
+        badge.textContent = data.dynatrace_connected ? '● Dynatrace Connected' : '● Dynatrace Offline';
+        badge.style.color = data.dynatrace_connected ? '#34d399' : '#f87171';
+    }
+
+    // Dynatrace problems
+    renderProblems(data.dynatrace_problems);
+
+    // Charts
+    renderLatencyChart(data.latency_history, data.pipeline_latency_avg_ms, data.pipeline_latency_p95_ms);
+    renderCostChart(data.budget_spend_usd, data.total_transactions);
+
+    // Log a real event
+    appendLog('info', `[LIVE] Latency avg=${data.pipeline_latency_avg_ms}ms | Spend=$${data.budget_spend_usd.toFixed(4)} | Tier=${data.routing_tier} | DT Problems=${data.dynatrace_problem_count}`);
+    if (data.dynatrace_connected) {
+        appendLog('success', `[DT] Connected to Dynatrace. Open problems: ${data.dynatrace_problem_count}`);
+    }
+}
+
+function setEl(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+}
+
+/* --- DYNATRACE PROBLEMS LIST --- */
+function renderProblems(problems) {
+    const container = document.getElementById('dt-problems-list');
+    if (!container) return;
+
+    if (!problems || problems.length === 0) {
+        container.innerHTML = `<div class="log-line log-line--success" style="padding:8px 0">
+            <span style="color:#34d399">✅ No open Dynatrace problems detected.</span>
+        </div>`;
+        return;
+    }
+
+    container.innerHTML = problems.map(p => {
+        const color = p.severity === 'AVAILABILITY' ? '#f87171' :
+                      p.severity === 'ERROR' ? '#fb923c' : '#facc15';
+        return `<div class="log-line" style="padding:6px 0; border-bottom: 1px solid rgba(255,255,255,0.05)">
+            <span style="color:${color}; font-weight:600">[${p.severity}]</span>
+            <span style="color:#e5e7eb; margin-left:8px">${p.title}</span>
+        </div>`;
+    }).join('');
+}
+
+/* --- LATENCY CHART (REAL DATA) --- */
+function renderLatencyChart(history, avg, p95) {
     const ctx = document.getElementById('chart-latency');
     if (!ctx) return;
 
-    // Generate 30 data points (last 30 mins)
-    const labels = Array.from({length: 30}, (_, i) => `-${30-i}m`);
-    const dataP50 = Array.from({length: 30}, () => 800 + Math.random() * 200);
-    const dataP95 = Array.from({length: 30}, (_, i) => {
-        // Add a spike
-        if (i > 20 && i < 25) return 2500 + Math.random() * 500;
-        return 1200 + Math.random() * 300;
-    });
+    // history = array of the last N transaction latencies in ms
+    const dataPoints = history.length > 0 ? history : Array(10).fill(avg);
+    const labels = dataPoints.map((_, i) => `-${dataPoints.length - i}tx`);
+
+    // Build P95-style overlay: mark the highest 5% as P95
+    const sorted = [...dataPoints].sort((a, b) => a - b);
+    const p95Val = sorted[Math.floor(sorted.length * 0.95)] || p95;
+    const p95Line = Array(dataPoints.length).fill(p95Val);
+
+    if (latencyChart) {
+        latencyChart.data.labels = labels;
+        latencyChart.data.datasets[0].data = dataPoints;
+        latencyChart.data.datasets[1].data = p95Line;
+        latencyChart.update('none');
+        return;
+    }
 
     latencyChart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: labels,
+            labels,
             datasets: [
                 {
-                    label: 'P95 Latency',
-                    data: dataP95,
-                    borderColor: '#3b82f6', // blue
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    label: 'Transaction Latency (ms)',
+                    data: dataPoints,
+                    borderColor: '#34d399',
+                    backgroundColor: 'rgba(52, 211, 153, 0.08)',
                     borderWidth: 2,
                     tension: 0.3,
-                    pointRadius: 0,
-                    pointHoverRadius: 4,
+                    pointRadius: 2,
+                    pointHoverRadius: 5,
                     fill: true
                 },
                 {
-                    label: 'P50 Latency',
-                    data: dataP50,
-                    borderColor: '#34d399', // emerald
-                    borderWidth: 2,
-                    tension: 0.3,
+                    label: 'P95 Threshold',
+                    data: p95Line,
+                    borderColor: '#3b82f6',
+                    borderWidth: 1.5,
+                    borderDash: [5, 5],
                     pointRadius: 0,
-                    pointHoverRadius: 4,
-                    fill: false
+                    fill: false,
+                    tension: 0
                 }
             ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            animation: false,
             interaction: { mode: 'index', intersect: false },
             plugins: {
                 legend: { display: false },
                 tooltip: {
-                    backgroundColor: 'rgba(17, 24, 39, 0.9)',
+                    backgroundColor: 'rgba(17, 24, 39, 0.95)',
                     titleColor: '#9ca3af',
                     bodyColor: '#f9fafb',
                     borderColor: 'rgba(255,255,255,0.1)',
                     borderWidth: 1,
-                    padding: 10
+                    padding: 10,
+                    callbacks: {
+                        label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(0)}ms`
+                    }
                 }
             },
             scales: {
-                x: {
-                    grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false },
-                    ticks: { color: '#6b7280', maxTicksLimit: 6 }
-                },
-                y: {
-                    grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false },
-                    ticks: { color: '#6b7280', callback: value => value + 'ms' },
-                    min: 0
-                }
+                x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#6b7280', maxTicksLimit: 6 } },
+                y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#6b7280', callback: v => v + 'ms' }, min: 0 }
             }
         }
     });
 }
 
-function initCostChart() {
+/* --- COST CHART (REAL RUNNING TOTAL) --- */
+function renderCostChart(totalSpend, totalTxns) {
     const ctx = document.getElementById('chart-cost');
     if (!ctx) return;
 
-    // Generate cumulative cost over 24h
-    const labels = Array.from({length: 24}, (_, i) => `${i}:00`);
-    let currentCost = 0;
-    const costData = Array.from({length: 24}, () => {
-        currentCost += (0.1 + Math.random() * 0.3);
-        return currentCost;
+    // Reconstruct approximate hourly cost from total spend
+    // We show a stepped real line up to the current hour
+    const now = new Date();
+    const currentHour = now.getHours();
+    const labels = Array.from({ length: 24 }, (_, i) => `${i}:00`);
+
+    // Distribute spend across hours proportionally (rough but real total)
+    const costPerHour = totalTxns > 0 ? totalSpend / Math.max(currentHour + 1, 1) : 0;
+    let cumulative = 0;
+    const costData = labels.map((_, i) => {
+        if (i > currentHour) return null;
+        cumulative += costPerHour;
+        return parseFloat(cumulative.toFixed(4));
     });
+
+    if (costChart) {
+        costChart.data.datasets[0].data = costData;
+        costChart.update('none');
+        return;
+    }
 
     costChart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: labels,
+            labels,
             datasets: [{
-                label: 'Cumulative Spend',
+                label: 'Cumulative API Spend',
                 data: costData,
-                borderColor: '#a855f7', // purple
-                backgroundColor: 'rgba(168, 85, 247, 0.1)',
+                borderColor: '#a855f7',
+                backgroundColor: 'rgba(168, 85, 247, 0.08)',
                 borderWidth: 2,
                 tension: 0.1,
                 pointRadius: 2,
                 pointHoverRadius: 5,
                 fill: true,
-                stepped: true
+                stepped: true,
+                spanGaps: false
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            animation: false,
             plugins: {
                 legend: { display: false },
                 tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return ' $' + context.raw.toFixed(2);
-                        }
-                    }
+                    callbacks: { label: ctx => ctx.raw !== null ? ` $${ctx.raw.toFixed(4)}` : ' No data yet' }
                 }
             },
             scales: {
-                x: {
-                    grid: { display: false },
-                    ticks: { color: '#6b7280', maxTicksLimit: 8 }
-                },
-                y: {
-                    grid: { color: 'rgba(255,255,255,0.05)' },
-                    ticks: { color: '#6b7280', callback: value => '$' + value },
-                    min: 0
-                }
+                x: { grid: { display: false }, ticks: { color: '#6b7280', maxTicksLimit: 8 } },
+                y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#6b7280', callback: v => '$' + v }, min: 0 }
             }
         }
     });
 }
 
-/* --- LOG STREAM --- */
-const logTemplates = [
-    { type: 'info', msg: '[MCP] Polling Dynatrace problems API. Status: 0 open.' },
-    { type: 'info', msg: '[AGENT] Gemini request completed. Latency: 842ms. Prompt tokens: 420.' },
-    { type: 'info', msg: '[SYSTEM] Processed batch of 10 transactions. Cache hit rate: 24%.' },
-    { type: 'warn', msg: '[BUDGET] Adaptive router warning. Tier 1 capacity at 85%.' },
-    { type: 'info', msg: '[AGENT] PatternDetector analysis: Nominal variance.' },
-    { type: 'error', msg: '[MCP] API rate limit approaching for environment dt0c01.' },
-    { type: 'action', msg: '[ACTION] Budget throttler engaged. Switching to Gemini-1.5-Flash.' },
-    { type: 'success', msg: '[SYSTEM] Cache flushed successfully.' }
-];
-
-function startLogStream() {
+/* --- LOG STREAM (real events + live data logs) --- */
+function appendLog(type, msg) {
     const terminal = document.getElementById('log-terminal');
     if (!terminal) return;
 
-    setInterval(() => {
-        if (Math.random() > 0.6) {
-            const template = logTemplates[Math.floor(Math.random() * logTemplates.length)];
-            appendLog(terminal, template.type, template.msg);
-        }
-    }, 2000);
-}
-
-function appendLog(terminal, type, msg) {
     const now = new Date();
-    const timeStr = `[${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}]`;
-    
+    const timeStr = `[${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}]`;
+
     const div = document.createElement('div');
     div.className = `log-line log-line--${type}`;
     div.innerHTML = `<span class="log-time">${timeStr}</span> ${msg}`;
-    
     terminal.appendChild(div);
-    
-    // Auto-scroll
     terminal.scrollTop = terminal.scrollHeight;
 
-    // Keep max 100 lines
-    if (terminal.children.length > 100) {
-        terminal.removeChild(terminal.firstChild);
-    }
+    if (terminal.children.length > 120) terminal.removeChild(terminal.firstChild);
 }
 
 function clearLogs() {
     const terminal = document.getElementById('log-terminal');
     if (terminal) {
         terminal.innerHTML = '';
-        appendLog(terminal, 'info', '[SYSTEM] Logs cleared by user.');
+        appendLog('info', '[SYSTEM] Logs cleared by user.');
     }
 }
