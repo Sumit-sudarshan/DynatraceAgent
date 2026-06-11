@@ -90,9 +90,10 @@ const fraudChart = new Chart(fraudCtx, {
 
 // === WEBSOCKET ===
 function connect() {
-    const wsUrl = `ws://${window.location.host}/ws/transactions`;
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = `${protocol}//${window.location.host}/ws/transactions`;
     const url = window.location.protocol === "file:" ? "ws://localhost:8000/ws/transactions" : wsUrl;
-    
+
     const ws = new WebSocket(url);
 
     ws.onopen = () => {
@@ -104,21 +105,21 @@ function connect() {
     ws.onmessage = (event) => {
         try {
             const data = JSON.parse(event.data);
-            
+
             if (data.metrics) {
                 updateMetrics(data.metrics);
             }
-            
+
             if (data.stats) {
                 updateKPIs(data.stats);
             }
-            
+
             if (data.transaction && data.result) {
                 messages.unshift(data);
                 if (messages.length > 50) messages.pop();
-                
+
                 renderFeed();
-                
+
                 // Auto-select the latest BLOCK or FLAG for dramatic effect, or first message
                 const decision = data.result.decision.toUpperCase();
                 if (decision === 'BLOCK' || decision === 'FLAG' || messages.length === 1) {
@@ -136,7 +137,7 @@ function connect() {
         console.log('Disconnected. Retrying...');
         setTimeout(connect, 3000);
     };
-    
+
     ws.onerror = () => ws.close();
 }
 
@@ -146,7 +147,7 @@ function updateKPIs(stats) {
     kpiApprovedEl.textContent = stats.approved;
     kpiFlaggedEl.textContent = stats.flagged;
     kpiBlockedEl.textContent = stats.blocked;
-    
+
     // Update fraud doughnut chart
     fraudChart.data.datasets[0].data = [stats.approved, stats.flagged, stats.blocked];
     fraudChart.update('none');
@@ -156,11 +157,11 @@ function updateMetrics(metrics) {
     // Update Budget
     const burn = metrics.budget_spend_usd.toFixed(4);
     const pct = metrics.budget_utilization_pct;
-    
+
     hourlyBurnEl.textContent = `$${burn}`;
     budgetPctEl.textContent = `${pct.toFixed(1)}%`;
     budgetProgressEl.style.width = `${Math.min(100, pct)}%`;
-    
+
     if (pct > 80) {
         budgetProgressEl.classList.remove('bg-emerald');
         budgetProgressEl.classList.add('bg-red');
@@ -178,7 +179,7 @@ function updateMetrics(metrics) {
     const timeLabel = `${now.getMinutes()}:${now.getSeconds().toString().padStart(2, '0')}`;
     costChart.data.labels.push(timeLabel);
     costChart.data.datasets[0].data.push(metrics.budget_spend_usd);
-    
+
     if (costChart.data.labels.length > MAX_COST_POINTS) {
         costChart.data.labels.shift();
         costChart.data.datasets[0].data.shift();
@@ -189,7 +190,7 @@ function updateMetrics(metrics) {
     const fp = metrics.false_positive_rate;
     fpRateEl.textContent = `${(fp * 100).toFixed(1)}%`;
     fpProgressEl.style.width = `${Math.min(100, fp * 100)}%`;
-    
+
     if (fp > 0.15) {
         fpRateEl.classList.replace('text-emerald', 'text-red');
         fpProgressEl.classList.replace('bg-blue', 'bg-red');
@@ -201,7 +202,7 @@ function updateMetrics(metrics) {
         fpProgressEl.style.boxShadow = 'none';
         mcpAlertEl.classList.add('hidden');
     }
-    
+
     // Update Router Tier
     const tier = metrics.current_routing_tier.toLowerCase();
     routingTierEl.textContent = `${tier.toUpperCase()} TIER`;
@@ -210,14 +211,14 @@ function updateMetrics(metrics) {
 
 function renderFeed() {
     feedContainer.innerHTML = '';
-    
+
     messages.forEach((msg) => {
         const card = document.createElement('div');
         const decision = msg.result.decision.toLowerCase();
-        
+
         card.className = `tx-card ${decision}`;
         card.onclick = () => renderDetails(msg);
-        
+
         let reasonHtml = '';
         if (decision !== 'approve') {
             reasonHtml = `<div class="tx-reason"><strong>AI Trigger:</strong> ${msg.result.fraud_category}</div>`;
@@ -234,7 +235,7 @@ function renderFeed() {
             </div>
             ${reasonHtml}
         `;
-        
+
         feedContainer.appendChild(card);
     });
 }
@@ -243,7 +244,7 @@ function renderDetails(msg) {
     const isHighRisk = msg.result.risk_score > 70;
     const tierLabel = msg.result.routing_tier || 'standard';
     const model = tierLabel === 'economy' ? 'Gemini 2.0 Flash' : 'Gemini 2.0 Pro';
-    
+
     detailContainer.innerHTML = `
         <div class="detail-section">
             <h3 class="section-title">Target Subject</h3>
