@@ -7,6 +7,7 @@
 **Powered by Gemini 2.5 Flash · Google Vertex AI · Dynatrace · Cloud Run**
 
 [![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-Cloud_Run-4285F4?style=for-the-badge)](https://finsentinel-466382469557.us-central1.run.app)
+[![Video Demo](https://img.shields.io/badge/🎥_Watch_Video-YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://youtu.be/Pl-Tdk4Z4JI)
 [![GitHub](https://img.shields.io/badge/GitHub-Source_Code-181717?style=for-the-badge&logo=github)](https://github.com/Sumit-sudarshan/DynatraceAgent)
 [![Vertex AI](https://img.shields.io/badge/Gemini_2.5_Flash-Vertex_AI-FF6F00?style=for-the-badge&logo=google-cloud)](https://cloud.google.com/vertex-ai)
 [![Dynatrace](https://img.shields.io/badge/Dynatrace-Observability-1496FF?style=for-the-badge)](https://www.dynatrace.com)
