@@ -18,6 +18,9 @@ Respond ONLY with valid JSON:
     "fraud_category": "none|velocity_testing|card_not_present_geo|high_risk_merchant|account_takeover",
     "confidence": <0.0-1.0>,
     "explanation": "...",
+    "feature_weights": [
+        {"feature": "txn_amount", "impact": 0.45, "direction": "fraud|legit"}
+    ],
     "recommended_actions": ["action1", "action2"]
 }"""
 
@@ -28,12 +31,6 @@ async def run_decision(transaction: Dict[str, Any], investigation_result: Dict[s
     """
     # Track final decision cost
     model_used = "gemini-pro" if routing_tier != "economy" else "gemini-flash"
-    cost_tracker.record_transaction_cost(
-        transaction["transaction_id"], 
-        model_used, 
-        prompt_tokens=400, 
-        completion_tokens=100
-    )
     
     # Calculate ML heuristic risk and confidence
     ml_risk, ml_conf, top_reason = calculate_risk_and_confidence(transaction, investigation_result)
@@ -63,6 +60,9 @@ async def run_decision(transaction: Dict[str, Any], investigation_result: Dict[s
             "fraud_category": top_reason.lower().replace(" ", "_"),
             "confidence": ml_conf,
             "explanation": explanation,
+            "feature_weights": [
+                {"feature": "mock_risk_heuristic", "impact": 0.6, "direction": "fraud" if risk_score > 60 else "legit"}
+            ],
             "recommended_actions": actions,
             "routing_tier": routing_tier
         }
@@ -78,9 +78,13 @@ async def run_decision(transaction: Dict[str, Any], investigation_result: Dict[s
         }
         
         model = MODEL_PRO if routing_tier != "economy" else MODEL_FLASH
-        raw_text = await call_gemini_with_retry(
+        raw_text, prompt_tokens, completion_tokens = await call_gemini_with_retry(
             model=model,
             contents=f"{DECISION_SYSTEM_PROMPT}\n\nContext:\n{json.dumps(context, indent=2)}"
+        )
+        cost_tracker.record_transaction_cost(
+            transaction["transaction_id"], model,
+            prompt_tokens=prompt_tokens, completion_tokens=completion_tokens
         )
         
         # Safe JSON parsing
@@ -102,6 +106,7 @@ async def run_decision(transaction: Dict[str, Any], investigation_result: Dict[s
                 "fraud_category": top_reason.lower().replace(" ", "_"),
                 "confidence": ml_conf,
                 "explanation": "Fallback: Could not parse Gemini response. Used heuristic ML matrix.",
+                "feature_weights": [],
                 "recommended_actions": ["Manual review required"]
             }
         

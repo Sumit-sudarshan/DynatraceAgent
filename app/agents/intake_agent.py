@@ -71,9 +71,13 @@ async def run_intake_triage(transaction: Dict[str, Any]) -> Dict[str, Any]:
         import re
         from app.agents.gemini_helper import call_gemini_with_retry
         
-        raw_text = await call_gemini_with_retry(
+        raw_text, prompt_tokens, completion_tokens = await call_gemini_with_retry(
             model=MODEL_FLASH,
             contents=f"{INTAKE_SYSTEM_PROMPT}\n\nTransaction:\n{json.dumps(transaction)}"
+        )
+        cost_tracker.record_transaction_cost(
+            transaction["transaction_id"], MODEL_FLASH,
+            prompt_tokens=prompt_tokens, completion_tokens=completion_tokens
         )
         
         # Safe JSON parsing — handle markdown-wrapped responses

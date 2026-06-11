@@ -213,12 +213,12 @@ function updateKPIs(stats) {
 }
 
 function updateMetrics(metrics) {
-    // Budget
+    const SESSION_CAP = 5.0;
     const burn = metrics.budget_spend_usd.toFixed(4);
-    const pct = metrics.budget_utilization_pct;
+    const pct = (metrics.budget_spend_usd / SESSION_CAP) * 100;
 
     hourlyBurnEl.textContent = `$${burn}`;
-    budgetPctEl.textContent = `${pct.toFixed(1)}%`;
+    budgetPctEl.textContent = `${pct.toFixed(1)}% of $${SESSION_CAP}`;
     budgetProgressEl.style.width = `${Math.min(100, pct)}%`;
 
     // KPI cost card
@@ -329,7 +329,7 @@ function renderFeed() {
             <div class="tx-card__middle">
                 <div class="tx-card__left">
                     <span class="tx-card__name">${msg.transaction.customer_id}</span>
-                    <span class="tx-card__meta">${msg.transaction.location} &middot; ${msg.transaction.merchant_name}</span>
+                    <span class="tx-card__meta">${msg.transaction.location || 'Unknown'} &middot; ${msg.transaction.merchant_name || 'Unknown'}</span>
                 </div>
                 <div class="tx-card__right">
                     <span class="tx-card__amount">$${msg.transaction.amount.toFixed(2)}</span>
@@ -352,7 +352,7 @@ function renderDetails(msg) {
     const isHighRisk = riskScore > 70;
     const riskClass = getRiskClass(riskScore);
     const tierLabel = msg.result.routing_tier || 'standard';
-    const model = tierLabel === 'premium' ? 'Gemini 2.0 Pro' : 'Gemini 2.0 Flash';
+    const model = tierLabel === 'economy' ? 'gemini-1.5-flash-002' : tierLabel === 'premium' ? 'gemini-1.5-pro-002' : 'gemini-1.5-flash-002';
     const confidence = msg.result.confidence || 0;
     const decision = msg.result.decision.toUpperCase();
 
@@ -395,7 +395,7 @@ function renderDetails(msg) {
                 </div>
                 <div class="info-grid__item">
                     <div class="info-grid__label">Location</div>
-                    <div class="info-grid__value">${msg.transaction.location}</div>
+                    <div class="info-grid__value">${msg.transaction.location || 'Unknown'}</div>
                 </div>
                 <div class="info-grid__item">
                     <div class="info-grid__label">Amount</div>
@@ -410,7 +410,7 @@ function renderDetails(msg) {
             <div class="info-grid" style="margin-top: 0.5rem;">
                 <div class="info-grid__item">
                     <div class="info-grid__label">Method</div>
-                    <div class="info-grid__value">${msg.transaction.transaction_method}</div>
+                    <div class="info-grid__value">${msg.transaction.transaction_method || 'Card Payment'}</div>
                 </div>
                 <div class="info-grid__item">
                     <div class="info-grid__label">Card Network</div>
@@ -443,7 +443,7 @@ function renderDetails(msg) {
             ` : ''}
         </div>
 
-        <!-- SHAP-Style Feature Impact -->
+        <!-- Feature Impact Analysis -->
         <div class="detail-section">
             <div class="detail-section__title">${icon('barChart')} Feature Impact Analysis</div>
             <div class="shap-bar-container">
@@ -505,10 +505,18 @@ function renderDetails(msg) {
     `;
 }
 
-// === GENERATE SHAP-STYLE FEATURES ===
-// Simulates SHAP feature impacts from transaction data for visual display
-// In production, this would come from the backend SHAP explainer
+// === GENERATE FEATURE WEIGHTS ===
+// Uses LLM-provided feature_weights if available, otherwise simulates impacts for backward compatibility
 function generateSHAPFeatures(msg) {
+    if (msg.result && msg.result.feature_weights && msg.result.feature_weights.length > 0) {
+        return msg.result.feature_weights.map(f => ({
+            feature: f.feature,
+            impact: f.impact,
+            direction: f.direction,
+            barWidth: Math.min(100, f.impact * 200)
+        })).sort((a, b) => b.impact - a.impact).slice(0, 5);
+    }
+
     const tx = msg.transaction;
     const result = msg.result;
     const riskScore = result.risk_score || 0;

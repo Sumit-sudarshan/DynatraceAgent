@@ -79,7 +79,10 @@ async def call_gemini_with_retry(
                     temperature=0.1,
                 )
             )
-            return response.text
+            usage = response.usage_metadata
+            prompt_tokens = getattr(usage, 'prompt_token_count', 0) or 0
+            completion_tokens = getattr(usage, 'candidates_token_count', 0) or 0
+            return response.text, prompt_tokens, completion_tokens
             
         except Exception as e:
             error_str = str(e)

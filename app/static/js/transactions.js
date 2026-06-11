@@ -359,7 +359,7 @@ function renderForensicDetail(tx) {
     const decision = tx.decision.toUpperCase();
     const decisionClass = decision === 'APPROVE' ? 'approve' : decision === 'FLAG' ? 'flag' : 'block';
     const tierLabel = tx.routingTier || 'standard';
-    const model = tierLabel === 'premium' ? 'Gemini 2.0 Pro' : 'Gemini 2.0 Flash';
+    const model = tierLabel === 'economy' ? 'gemini-1.5-flash-002' : tierLabel === 'premium' ? 'gemini-1.5-pro-002' : 'gemini-1.5-flash-002';
     const time = new Date(tx.timestamp * 1000);
 
     // Generate device info (simulated since backend doesn't provide hardware-level info)
@@ -495,7 +495,7 @@ function renderForensicDetail(tx) {
             </div>
 
             <div class="forensic-section">
-                <div class="forensic-section__title">${icon('barChart')} Feature Impact Analysis (SHAP)</div>
+                <div class="forensic-section__title">${icon('barChart')} Feature Impact Analysis</div>
                 <div class="shap-bar-container">
                     ${shapFeatures.map(f => `
                         <div class="shap-bar">
@@ -620,7 +620,17 @@ function generateCustomerHistory(tx) {
     return history;
 }
 
+// === GENERATE FEATURE WEIGHTS ===
 function generateSHAPFeatures(tx) {
+    if (tx.result && tx.result.feature_weights && tx.result.feature_weights.length > 0) {
+        return tx.result.feature_weights.map(f => ({
+            feature: f.feature,
+            impact: f.impact,
+            direction: f.direction,
+            barWidth: Math.min(100, f.impact * 200)
+        })).sort((a, b) => b.impact - a.impact).slice(0, 5);
+    }
+
     const features = [];
     const amountImpact = tx.amount > 5000 ? 0.45 : tx.amount > 1000 ? 0.2 : 0.05;
     features.push({ feature: 'txn_amount', impact: amountImpact, direction: tx.amount > 1000 ? 'fraud' : 'legit', barWidth: Math.min(100, amountImpact * 200) });

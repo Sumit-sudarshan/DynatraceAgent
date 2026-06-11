@@ -1,5 +1,5 @@
 import logging
-from app.config import BUDGET_ECONOMY_THRESHOLD, BUDGET_PREMIUM_THRESHOLD, FP_RATE_HEALING_THRESHOLD
+import app.config as config
 from .budget_controller import budget_controller
 
 logger = logging.getLogger(__name__)
@@ -19,10 +19,10 @@ class Router:
         utilization = budget_controller.get_utilization_percentage()
         
         # Routing Decision Matrix
-        if utilization > BUDGET_ECONOMY_THRESHOLD:
+        if utilization > config.BUDGET_ECONOMY_THRESHOLD:
             # Budget tight: force cheap models
             tier = self.TIER_ECONOMY
-        elif utilization < BUDGET_PREMIUM_THRESHOLD or self.current_false_positive_rate > FP_RATE_HEALING_THRESHOLD:
+        elif utilization < config.BUDGET_PREMIUM_THRESHOLD or self.current_false_positive_rate > config.FP_RATE_HEALING_THRESHOLD:
             # Lots of budget OR high FP rate (need better reasoning)
             tier = self.TIER_PREMIUM
         else:

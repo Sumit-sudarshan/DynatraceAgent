@@ -187,7 +187,7 @@ function updatePipelineConnectors() {
 }
 
 /* --- SAVING --- */
-function saveSection(sectionName) {
+async function saveSection(sectionName) {
     const msgMap = {
         'fraud': 'Fraud thresholds updated. Applying to live stream...',
         'ai': 'AI models updated. Pipeline re-initialized.',
@@ -196,6 +196,30 @@ function saveSection(sectionName) {
         'notifications': 'Alert rules updated.',
         'agents': 'Agent pipeline configuration applied.'
     };
+    
+    if (sectionName === 'budget') {
+        const budgetDaily = parseFloat(document.getElementById('budget-daily').value);
+        const tierAmber = parseFloat(document.getElementById('tier-amber').value);
+        const tierRed = parseFloat(document.getElementById('tier-red').value);
+        
+        try {
+            const baseUrl = window.location.protocol === 'file:' ? 'http://localhost:8000' : window.location.origin;
+            const response = await fetch(`${baseUrl}/api/settings`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    budget_daily: budgetDaily,
+                    tier_amber: tierAmber,
+                    tier_red: tierRed
+                })
+            });
+            if (!response.ok) throw new Error('Network response was not ok');
+        } catch (err) {
+            console.error('Failed to save settings:', err);
+            showToast('Failed to save settings. See console for details.');
+            return;
+        }
+    }
     
     showToast(msgMap[sectionName] || 'Settings saved successfully.');
 }

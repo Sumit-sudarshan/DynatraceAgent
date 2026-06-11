@@ -52,6 +52,8 @@ class TransactionGenerator:
                         "amount": amount,
                         "customer_id": cust_id,
                         "merchant_name": random.choice(["Amazon", "Starbucks", "Uber", "Best Buy", "Target"]),
+                        "location": random.choice(["New York, US", "Chicago, US", "San Francisco, US", "Austin, US", "Miami, US", "Seattle, US"]),
+                        "transaction_method": random.choice(["Online Purchase", "In-Store POS", "Mobile App"]),
                         "device_fingerprint": f"Device: {random.choice(['iPhone 15 Pro', 'MacBook Pro', 'Windows PC'])}, IP: {random.randint(1,255)}.{random.randint(1,255)}.{random.randint(1,255)}.{random.randint(1,255)}",
                         "card_network": card_details,
                         "latitude": random.uniform(25.0, 48.0),
@@ -75,6 +77,8 @@ class TransactionGenerator:
                 "amount": round(random.uniform(5.0, 150.0), 2),
                 "customer_id": f"cust_{random.randint(1000, 9999)}",
                 "merchant_name": random.choice(self.merchants),
+                "location": random.choice(self.cities),
+                "transaction_method": random.choice(self.channels),
                 "device_fingerprint": f"Device: {random.choice(self.devices)}, IP: 198.51.100.{random.randint(1,255)}",
                 "card_network": f"Visa (•••• {random.randint(1000, 9999)})",
                 "latitude": random.uniform(25.0, 48.0),
@@ -101,6 +105,7 @@ class TransactionGenerator:
         tx["customer_id"] = f"cust_{random.randint(1000, 9999)}_travel"
         tx["amount"] = round(random.uniform(500.0, 2500.0), 2)
         tx["merchant_name"] = "Luxury Electronics Moscow"
+        tx["location"] = "Moscow, RU"
         # Moscow coordinates
         tx["latitude"] = 55.7558
         tx["longitude"] = 37.6173

@@ -19,11 +19,11 @@ DT_PLATFORM_TOKEN = os.getenv("DT_PLATFORM_TOKEN", "")  # Platform token for MCP
 MCP_SERVER_URL = os.getenv("MCP_SERVER_URL", "")    # (unused — MCP runs as subprocess)
 
 # --- Budget ---
-BUDGET_USD_PER_HOUR = float(os.getenv("BUDGET_USD_PER_HOUR", "50.0"))
+BUDGET_USD_PER_HOUR = float(os.getenv("BUDGET_USD_PER_HOUR", "5.0"))  # $5 session cap
 
 # --- Model Names ---
-MODEL_FLASH = os.getenv("MODEL_FLASH", "gemini-1.5-flash-002")
-MODEL_PRO = os.getenv("MODEL_PRO", "gemini-1.5-pro-002")
+MODEL_FLASH = os.getenv("MODEL_FLASH", "gemini-1.5-flash-001")
+MODEL_PRO = os.getenv("MODEL_PRO", "gemini-1.5-pro-001")
 
 # --- Thresholds ---
 BUDGET_ECONOMY_THRESHOLD = 80.0    # % utilization to trigger economy mode

@@ -107,9 +107,13 @@ async def run_investigation(transaction: Dict[str, Any]) -> Dict[str, Any]:
             "related_transactions": related
         }
         
-        raw_text = await call_gemini_with_retry(
+        raw_text, prompt_tokens, completion_tokens = await call_gemini_with_retry(
             model=MODEL_PRO,
             contents=f"{INVESTIGATOR_SYSTEM_PROMPT}\n\nTool Outputs:\n{json.dumps(tool_context, indent=2)}"
+        )
+        cost_tracker.record_transaction_cost(
+            transaction["transaction_id"], MODEL_PRO,
+            prompt_tokens=prompt_tokens, completion_tokens=completion_tokens
         )
         
         # Safe JSON parsing

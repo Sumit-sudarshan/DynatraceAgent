@@ -12,8 +12,10 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
-from typing import List
+from pydantic import BaseModel
+from typing import List, Optional
 import random
+import app.config as config
 
 from app.data.transaction_generator import TransactionGenerator
 from app.agents.orchestrator import process_transaction
@@ -189,6 +191,20 @@ def get_stats():
 @app.get("/api/transactions")
 def get_transactions():
     return stats["recent_transactions"][-50:]
+
+class SettingsUpdate(BaseModel):
+    budget_daily: Optional[float] = None
+    tier_amber: Optional[float] = None
+    tier_red: Optional[float] = None
+
+@app.post("/api/settings")
+def update_settings(settings: SettingsUpdate):
+    if settings.budget_daily is not None:
+        config.BUDGET_USD_PER_HOUR = settings.budget_daily
+    if settings.tier_amber is not None:
+        config.BUDGET_ECONOMY_THRESHOLD = settings.tier_amber
+    
+    return {"status": "success", "message": "Settings updated"}
 
 # Serve the Vanilla JS Dashboard
 static_dir = os.path.join(os.path.dirname(__file__), "static")
